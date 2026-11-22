@@ -9,6 +9,9 @@ import {
   AlertCircle,
   Check,
   Sparkles,
+  Wifi,
+  WifiOff,
+  RefreshCw,
 } from 'lucide-react';
 import type {
   CandidateMatch,
@@ -24,6 +27,14 @@ import {
   loadIsolatedDraft,
   saveIsolatedDraft,
 } from '../utils/draftStorage';
+import {
+  clearAllOfflineQueues,
+  enqueueOfflineCheck,
+  loadOfflineQueue,
+  removeOfflineItem,
+  type QueuedCheckItem,
+} from '../utils/offlineQueue';
+import { syncCaseSnapshotToFirestore } from '../lib/firebase';
 import { isVoiceInputSupported, startVoiceDictation } from '../utils/speech';
 import { VerdictDisplay } from './VerdictDisplay';
 
@@ -76,8 +87,17 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
   const stopVoiceRef = useRef<(() => void) | null>(null);
   const voiceSupported = isVoiceInputSupported();
 
-  // Shared-phone draft count
+  // Shared-phone draft count & Offline-First sync queue
   const [draftCount, setDraftCount] = useState<number>(() => countActiveLocalDrafts());
+  const [browserOnline, setBrowserOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [simulateOffline, setSimulateOffline] = useState(false);
+  const [offlineQueue, setOfflineQueue] = useState<QueuedCheckItem[]>(() =>
+    loadOfflineQueue(user.id)
+  );
+  const [syncingQueue, setSyncingQueue] = useState(false);
+  const isEffectiveOffline = !browserOnline || simulateOffline;
 
   // New Family + Phonetic Candidate Match Modal/Panel
   const [showNewFamily, setShowNewFamily] = useState(false);
@@ -112,8 +132,20 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
 
   useEffect(() => {
     loadData();
+    setOfflineQueue(loadOfflineQueue(user.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
+
+  useEffect(() => {
+    const onOnline = () => setBrowserOnline(true);
+    const onOffline = () => setBrowserOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   // Restore isolated per-family draft when switching family
   const handleFamilySwitch = (nextFamilyId: string) => {
@@ -153,13 +185,69 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
 
   const handleLockAndClearDrafts = () => {
     const removed = clearAllHelperDrafts();
+    const removedQueues = clearAllOfflineQueues();
+    setOfflineQueue([]);
     setSenderClaimed('');
     setPaymentRef('');
     setMessageText('');
     setDraftCount(0);
     setStatusNotice(
-      `Shared phone cleared: wiped ${removed} local draft session key(s) and cleared the input box.`
+      `Shared phone cleared: wiped ${removed} local draft key(s) and ${removedQueues} offline queue(s), and cleared the input box.`
     );
+  };
+
+  const handleSyncOfflineQueue = async () => {
+    if (isEffectiveOffline || syncingQueue) return;
+    const items = loadOfflineQueue(user.id);
+    if (items.length === 0) return;
+
+    setSyncingQueue(true);
+    setError(null);
+    let syncedCount = 0;
+    let replayCount = 0;
+    let lastCase: CaseWithDecisions | null = null;
+
+    try {
+      for (const item of items) {
+        const res = await api.submitCase({
+          message_text: item.message_text,
+          sender_claimed: item.sender_claimed,
+          payment_ref: item.payment_ref,
+          family_id: item.family_id,
+          use_gemini: item.use_gemini,
+          client_request_id: item.client_request_id,
+        });
+        void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
+        const remaining = removeOfflineItem(user.id, item.client_request_id);
+        setOfflineQueue(remaining);
+        lastCase = res.case;
+        if (res.idempotent_replay) {
+          replayCount += 1;
+        } else {
+          syncedCount += 1;
+        }
+        setCases((prev) =>
+          prev.some((c) => c.id === res.case.id)
+            ? prev.map((c) => (c.id === res.case.id ? res.case : c))
+            : [res.case, ...prev]
+        );
+      }
+
+      if (lastCase) {
+        setActiveResult(lastCase);
+      }
+      setStatusNotice(
+        `Offline sync complete: ${syncedCount} queued check(s) evaluated${replayCount > 0 ? ` (${replayCount} duplicate replay prevented via client_request_id)` : ''}.`
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Sync paused (${err.message}). Queued items remain safe for retry.`
+          : 'Sync paused. Queued items remain safe for retry.'
+      );
+    } finally {
+      setSyncingQueue(false);
+    }
   };
 
   const handleToggleVoice = () => {
@@ -197,6 +285,28 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
       return;
     }
 
+    if (isEffectiveOffline) {
+      const fam = families.find((f) => f.id === selectedFamilyId);
+      const queued = enqueueOfflineCheck(user.id, {
+        message_text: messageText,
+        sender_claimed: senderClaimed,
+        payment_ref: paymentRef.trim() || null,
+        family_id: isHelperMode && selectedFamilyId ? selectedFamilyId : null,
+        family_label: fam ? `${fam.display_name} (${fam.id})` : null,
+        use_gemini: useGemini,
+      });
+      setOfflineQueue(loadOfflineQueue(user.id));
+      clearIsolatedDraft(user.id, selectedFamilyId || null);
+      setMessageText('');
+      setSenderClaimed('');
+      setPaymentRef('');
+      setDraftCount(countActiveLocalDrafts());
+      setStatusNotice(
+        `Saved offline (${queued.client_request_id.slice(0, 14)}...). Reconnect signal and click "Sync Queued Checks" for idempotent verification.`
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await api.submitCase({
@@ -206,6 +316,7 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
         family_id: isHelperMode && selectedFamilyId ? selectedFamilyId : null,
         use_gemini: useGemini,
       });
+      void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
 
       // Auto-clear isolated draft immediately upon submission
       clearIsolatedDraft(user.id, selectedFamilyId || null);
@@ -230,6 +341,7 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
     setError(null);
     try {
       const res = await api.escalateCase(caseId, 'Escalated from Checker screen for officer review.');
+      void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
       setActiveResult(res.case);
       setCases((prev) => prev.map((c) => (c.id === caseId ? res.case : c)));
       setStatusNotice(`Case ${caseId} escalated to the Department Officer review queue.`);
@@ -242,11 +354,25 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
     setError(null);
     try {
       const res = await api.submitFollowup(caseId, answer);
+      void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
       setActiveResult(res.case);
       setCases((prev) => prev.map((c) => (c.id === caseId ? res.case : c)));
       setStatusNotice(`Safe context added and sent to Department Officer for verification.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send answer.');
+    }
+  };
+
+  const handleCloseCase = async (caseId: string) => {
+    setError(null);
+    try {
+      const res = await api.closeCase(caseId);
+      void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
+      setActiveResult(res.case);
+      setCases((prev) => prev.map((c) => (c.id === caseId ? res.case : c)));
+      setStatusNotice(`Case ${caseId} closed and recorded in the append-only audit trail.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not close case.');
     }
   };
 
@@ -508,7 +634,7 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
           aria-label="Check Relief Message Form"
           className="rounded-xl border border-[#E2E8F0] bg-white p-6 xl:col-span-7"
         >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-bold text-[#0F172A]">Verify a Relief Message</h2>
               <p className="mt-0.5 text-sm text-[#475569]">
@@ -516,7 +642,60 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
                 saving.
               </p>
             </div>
+            {!isAuditor && (
+              <button
+                type="button"
+                onClick={() => setSimulateOffline((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isEffectiveOffline
+                    ? 'border-[#F59E0B] bg-[#FFFBEB] text-[#92400E]'
+                    : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
+                }`}
+              >
+                {isEffectiveOffline ? (
+                  <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <Wifi className="h-3.5 w-3.5 text-[#15803D]" aria-hidden="true" />
+                )}
+                {isEffectiveOffline ? 'Offline Mode (Reconnect)' : 'Simulate Offline'}
+              </button>
+            )}
           </div>
+
+          {offlineQueue.length > 0 && (
+            <div className="mt-4 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-[#92400E] tabular-nums">
+                  Offline Queue: {offlineQueue.length} message
+                  {offlineQueue.length === 1 ? '' : 's'} awaiting sync (idempotent{' '}
+                  <code className="font-mono">client_request_id</code> protected)
+                </p>
+                <button
+                  type="button"
+                  disabled={isEffectiveOffline || syncingQueue}
+                  onClick={handleSyncOfflineQueue}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0F4C5C] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0B3B48] disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${syncingQueue ? 'animate-spin' : ''}`}
+                    aria-hidden="true"
+                  />
+                  {syncingQueue
+                    ? 'Syncing...'
+                    : isEffectiveOffline
+                      ? 'Reconnect to Sync'
+                      : 'Sync Queued Checks'}
+                </button>
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-[#78350F]">
+                {offlineQueue.map((item) => (
+                  <li key={item.client_request_id} className="truncate font-mono text-[11px]">
+                    [{item.sender_claimed || 'no-sender'}] {item.message_text.slice(0, 72)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Quick Test Presets */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -656,9 +835,11 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
                 <SearchCheck className="h-4 w-4" aria-hidden="true" />
                 {isAuditor
                   ? 'Read-Only Auditor Role'
-                  : submitting
-                    ? 'Checking Safely...'
-                    : 'Check Message Now'}
+                  : isEffectiveOffline
+                    ? 'Queue Check Offline'
+                    : submitting
+                      ? 'Checking Safely...'
+                      : 'Check Message Now'}
               </button>
             </div>
           </form>
@@ -739,6 +920,7 @@ export function CheckerView({ user, geminiConfigured }: CheckerViewProps) {
           canEscalate={!isAuditor}
           onEscalate={handleEscalate}
           onAnswerFollowup={!isAuditor ? handleAnswerFollowup : undefined}
+          onCloseCase={!isAuditor ? handleCloseCase : undefined}
         />
       )}
     </div>

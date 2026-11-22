@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { KeyRound, ShieldCheck, X } from 'lucide-react';
+import { Cloud, CloudOff, KeyRound, ShieldCheck, X } from 'lucide-react';
+import type { User as FirebaseUser } from 'firebase/auth';
 import type { UserPublic, UserRole } from '../shared/types';
 
 interface LoginModalProps {
   open: boolean;
   accounts: UserPublic[];
   currentUser: UserPublic | null;
+  firebaseUser: FirebaseUser | null;
   onClose: () => void;
   onDemoRoleLogin: (role: UserRole) => Promise<void>;
   onPasswordLogin: (email: string, password: string) => Promise<void>;
+  onGoogleCloudConnect: () => Promise<void>;
+  onGoogleCloudDisconnect: () => Promise<void>;
 }
 
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -23,9 +27,12 @@ export function LoginModal({
   open,
   accounts,
   currentUser,
+  firebaseUser,
   onClose,
   onDemoRoleLogin,
   onPasswordLogin,
+  onGoogleCloudConnect,
+  onGoogleCloudDisconnect,
 }: LoginModalProps) {
   const [email, setEmail] = useState('helper@relief.demo');
   const [password, setPassword] = useState('demo1234');
@@ -61,6 +68,34 @@ export function LoginModal({
     }
   };
 
+  const handleGoogleConnect = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onGoogleCloudConnect();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Google Sign-In popup was cancelled or blocked by the browser.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleDisconnect = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onGoogleCloudDisconnect();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to disconnect cloud sync.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/50 p-4"
@@ -68,14 +103,15 @@ export function LoginModal({
       aria-modal="true"
       aria-labelledby="login-dialog-title"
     >
-      <div className="w-full max-w-2xl rounded-xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-[#E2E8F0] bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4 border-b border-[#E2E8F0] pb-4">
           <div>
             <h2 id="login-dialog-title" className="text-lg font-bold text-[#0F172A]">
-              Sign In or Switch Demo Role
+              Sign In, Switch Role, or Connect Cloud Sync
             </h2>
             <p className="mt-1 text-sm text-[#475569]">
-              Issues a real server-signed Bearer token held in memory with strict server-side RBAC.
+              Issues a server-signed Bearer token in memory with strict server-side RBAC, plus
+              optional Google Cloud Firestore persistence.
             </p>
           </div>
           {currentUser && (
@@ -95,6 +131,44 @@ export function LoginModal({
             {error}
           </div>
         )}
+
+        {/* Firebase Google Cloud Sync Panel */}
+        <div className="mt-5 rounded-lg border border-[#CBD5E1] bg-[#F8FAFC] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
+                <Cloud className="h-4 w-4 text-[#0F4C5C]" aria-hidden="true" />
+                Firebase Cloud Firestore Persistence
+              </p>
+              <p className="mt-0.5 text-xs text-[#475569]">
+                {firebaseUser
+                  ? `Connected as ${firebaseUser.displayName || firebaseUser.email}. PII-redacted case & consent snapshots mirror automatically to Firestore.`
+                  : 'Sign in with Google to persist your verified PII-redacted cases and consent status in Cloud Firestore across sessions.'}
+              </p>
+            </div>
+            {firebaseUser ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleGoogleDisconnect}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#FECACA] bg-white px-3.5 py-2 text-xs font-semibold text-[#991B1B] hover:bg-[#FEF2F2] disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <CloudOff className="h-3.5 w-3.5" aria-hidden="true" />
+                Sign Out Cloud
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleGoogleConnect}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0F4C5C] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0B3B48] disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Cloud className="h-3.5 w-3.5" aria-hidden="true" />
+                Sign In with Google
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="mt-5">
           <p className="text-xs font-semibold text-[#475569]">

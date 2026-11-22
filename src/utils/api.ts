@@ -80,8 +80,9 @@ export const api = {
     payment_ref?: string | null;
     family_id?: string | null;
     use_gemini?: boolean;
+    client_request_id?: string | null;
   }) =>
-    apiFetch<{ case: CaseWithDecisions }>('/api/cases', {
+    apiFetch<{ case: CaseWithDecisions; idempotent_replay?: boolean }>('/api/cases', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  BookOpen,
   ClipboardCheck,
   FileSearch,
   LogIn,
@@ -10,8 +11,14 @@ import {
   Sliders,
   X,
 } from 'lucide-react';
+import type { User as FirebaseUser } from 'firebase/auth';
 import type { UserPublic, UserRole } from './shared/types';
 import { api, setAuthToken } from './utils/api';
+import {
+  signInWithGooglePopup,
+  signOutGoogle,
+  subscribeFirebaseAuth,
+} from './lib/firebase';
 import { CheckerView } from './components/CheckerView';
 import { OfficerReviewView } from './components/OfficerReviewView';
 import { AdminRulesView } from './components/AdminRulesView';
@@ -69,6 +76,7 @@ export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [booting, setBooting] = useState(true);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   const signInWithDemoRole = async (role: UserRole) => {
     const res = await api.loginWithRole(role);
@@ -115,6 +123,21 @@ export default function App() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const unsub = subscribeFirebaseAuth((fbUser) => {
+      setFirebaseUser(fbUser);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleGoogleCloudConnect = async () => {
+    await signInWithGooglePopup(user?.role ?? 'helper');
+  };
+
+  const handleGoogleCloudDisconnect = async () => {
+    await signOutGoogle();
+  };
 
   const currentNavLabel = NAV_ITEMS.find((i) => i.key === screen)?.label ?? 'Check Message';
 
@@ -194,8 +217,22 @@ export default function App() {
                 <p className="truncate text-[11px] text-[#64748B]">
                   {user.email} · {user.role}
                 </p>
+                {firebaseUser && (
+                  <p className="mt-1 truncate text-[11px] font-medium text-[#15803D]">
+                    Cloud Sync: {firebaseUser.email}
+                  </p>
+                )}
               </div>
             )}
+            <a
+              href="/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center gap-2 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1.5 text-xs font-medium text-[#334155] hover:border-[#CBD5E1] hover:text-[#0F172A]"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-[#0F4C5C]" aria-hidden="true" />
+              OpenAPI Docs (/docs)
+            </a>
           </div>
         </aside>
 
@@ -333,9 +370,12 @@ export default function App() {
         open={loginOpen}
         accounts={accounts}
         currentUser={user}
+        firebaseUser={firebaseUser}
         onClose={() => setLoginOpen(false)}
         onDemoRoleLogin={signInWithDemoRole}
         onPasswordLogin={signInWithCredentials}
+        onGoogleCloudConnect={handleGoogleCloudConnect}
+        onGoogleCloudDisconnect={handleGoogleCloudDisconnect}
       />
     </div>
   );

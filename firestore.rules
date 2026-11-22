@@ -1,0 +1,177 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global hardened helper primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'mmak.lughat@gmail.com';
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.role is string && data.role in ['citizen', 'helper', 'officer', 'admin', 'auditor']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCloudCase(data, caseId) {
+      return data.keys().hasAll([
+          'caseId', 'ownerUid', 'verdict', 'status', 'confidence',
+          'ruleVersion', 'senderClaimed', 'redactedMessage', 'piiRedacted',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'caseId', 'ownerUid', 'verdict', 'status', 'confidence',
+          'ruleVersion', 'senderClaimed', 'redactedMessage', 'piiRedacted',
+          'createdAt', 'updatedAt'
+        ])
+        && data.caseId is string && data.caseId == caseId && isValidId(data.caseId)
+        && data.ownerUid is string && isValidId(data.ownerUid)
+        && data.verdict is string && data.verdict in [
+          'suspicious',
+          'matches_mock_official_notice',
+          'needs_non_sensitive_info',
+          'unverified_officer_review'
+        ]
+        && data.status is string && data.status in ['open', 'needs_info', 'in_review', 'resolved', 'closed']
+        && data.confidence is number && data.confidence >= 0 && data.confidence <= 1
+        && data.ruleVersion is int && data.ruleVersion >= 1 && data.ruleVersion <= 10000
+        && data.senderClaimed is string && data.senderClaimed.size() <= 64
+        && data.redactedMessage is string && data.redactedMessage.size() >= 6 && data.redactedMessage.size() <= 2500
+        && data.piiRedacted is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCloudConsent(data, consentId) {
+      return data.keys().hasAll(['consentId', 'ownerUid', 'subjectId', 'scope', 'status', 'updatedAt'])
+        && data.keys().hasOnly(['consentId', 'ownerUid', 'subjectId', 'scope', 'status', 'updatedAt'])
+        && data.consentId is string && data.consentId == consentId && isValidId(data.consentId)
+        && data.ownerUid is string && isValidId(data.ownerUid)
+        && data.subjectId is string && data.subjectId.size() >= 2 && data.subjectId.size() <= 64 && isValidId(data.subjectId)
+        && data.scope is string && data.scope in ['case_review', 'mock_identity', 'mock_payment']
+        && data.status is string && data.status in ['active', 'withdrawn']
+        && data.updatedAt is timestamp;
+    }
+
+    // Collection: /users/{userId}
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().role in ['citizen', 'helper'] || isAdmin());
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            request.auth.uid == userId
+            && incoming().role == existing().role
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Collection: /cloud_cases/{caseId}
+    match /cloud_cases/{caseId} {
+      allow get: if isSignedIn() && isValidId(caseId) && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+
+      allow create: if isVerifiedUser()
+        && isValidId(caseId)
+        && isValidCloudCase(incoming(), caseId)
+        && incoming().ownerUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(caseId)
+        && isValidCloudCase(incoming(), caseId)
+        && incoming().caseId == existing().caseId
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().ownerUid == request.auth.uid
+            && existing().status != 'closed'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'verdict', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(caseId);
+    }
+
+    // Collection: /cloud_consents/{consentId}
+    match /cloud_consents/{consentId} {
+      allow get: if isSignedIn() && isValidId(consentId) && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+
+      allow create: if isVerifiedUser()
+        && isValidId(consentId)
+        && isValidCloudConsent(incoming(), consentId)
+        && incoming().ownerUid == request.auth.uid
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(consentId)
+        && isValidCloudConsent(incoming(), consentId)
+        && incoming().consentId == existing().consentId
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().subjectId == existing().subjectId
+        && incoming().scope == existing().scope
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().ownerUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(consentId);
+    }
+  }
+}

@@ -29,6 +29,7 @@ export interface PipelineRunParams {
   familyId?: string | null;
   useGemini?: boolean;
   persistCase?: boolean;
+  clientRequestId?: string | null;
 }
 
 export interface PipelineRunOutput {
@@ -49,6 +50,7 @@ export async function runVerificationPipeline(
     familyId = null,
     useGemini = false,
     persistCase = true,
+    clientRequestId = null,
   } = params;
 
   const now = new Date().toISOString();
@@ -229,6 +231,7 @@ export async function runVerificationPipeline(
     assigned_officer: routed.verdict === 'unverified_officer_review' ? 'usr-officer-1' : null,
     pii_redacted: pii.piiRedacted,
     duplicate_count: duplicateCount,
+    client_request_id: clientRequestId,
     created_at: now,
     updated_at: now,
   };

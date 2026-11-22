@@ -9,6 +9,7 @@ import { routeVerdict } from './router';
 import { evaluateSyntheticDataset, runVerificationPipeline } from './pipeline';
 import { RelationalStore } from '../db/store';
 import { toPublicUser } from '../security';
+import { OPENAPI_SPEC, renderDocsHtml } from '../openapi';
 
 test('PII guardrail redacts CNIC and OTP before storage', () => {
   const input = 'My CNIC is 35202-1234567-1 and OTP: 482910 for relief check.';
@@ -152,3 +153,36 @@ test('Synthetic N=30 evaluation catches scams with zero missed scams at default 
   assert.ok(stats.metrics.scams_caught_auto >= 10);
   assert.ok(stats.metrics.official_verified_matches >= 8);
 });
+
+test('Pipeline persists client_request_id for idempotent offline-first sync replay', async () => {
+  const store = new RelationalStore(false);
+  const helper = toPublicUser(store.state.users.find((u) => u.role === 'helper')!);
+  const reqId = 'req-offline-test-12345';
+
+  const res = await runVerificationPipeline({
+    store,
+    actor: helper,
+    senderClaimed: '0301-5555555',
+    messageText: 'Urgent: send Rs 500 Easypaisa fee and OTP 123456 to claim relief grant now.',
+    clientRequestId: reqId,
+  });
+
+  assert.equal(res.caseRecord?.client_request_id, reqId);
+  assert.equal(res.caseRecord?.verdict, 'suspicious');
+  const existing = store.state.cases.find(
+    (c) => c.client_request_id === reqId && c.submitted_by === helper.id
+  );
+  assert.ok(existing, 'Expected stored case with matching client_request_id');
+});
+
+test('OpenAPI 3.0 specification and interactive docs renderer are valid', () => {
+  assert.equal(OPENAPI_SPEC.openapi, '3.0.3');
+  assert.ok('/v1/check' in OPENAPI_SPEC.paths);
+  assert.ok('/api/cases' in OPENAPI_SPEC.paths);
+  assert.ok('/api/cases/{id}/close' in OPENAPI_SPEC.paths);
+  assert.ok('/api/consent/{id}' in OPENAPI_SPEC.paths);
+  const html = renderDocsHtml();
+  assert.ok(html.includes('Relief Message Checker'));
+  assert.ok(html.includes('/openapi.json'));
+});
+

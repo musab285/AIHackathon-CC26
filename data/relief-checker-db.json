@@ -117,6 +117,67 @@
   ],
   "cases": [
     {
+      "id": "CASE-BDECEA19",
+      "submitted_by": "usr-helper-1",
+      "submitted_by_name": "Sanaullah Khan",
+      "family_id": "FAM-101",
+      "family_name": "Muhammad Tariq",
+      "message_text": "Mubarak ho! Apka 25,000 BISP relief approve ho gaya hai. Fauran apna [REDACTED-OTP] aur CNIC [REDACTED-CNIC] bhejein aur Rs 500 registration fee Easypaisa par bhej dein.",
+      "message_hash": "3f1a912ee163354234dbf6c66de6dbc393895814a1d7dece64a80b123a4858fc",
+      "sender_claimed": "0301-8842109",
+      "payment_ref": null,
+      "status": "closed",
+      "verdict": "suspicious",
+      "confidence": 1,
+      "rule_version": 1,
+      "assigned_officer": null,
+      "pii_redacted": false,
+      "duplicate_count": 0,
+      "client_request_id": "req-1135ff39-e078-418a-88e3-3d623d394943",
+      "created_at": "2026-11-22T12:47:40.083Z",
+      "updated_at": "2026-11-22T12:47:40.255Z"
+    },
+    {
+      "id": "CASE-13AF3CAE",
+      "submitted_by": "usr-helper-1",
+      "submitted_by_name": "Sanaullah Khan",
+      "family_id": "FAM-101",
+      "family_name": "Muhammad Tariq",
+      "message_text": "8171 Mock Notice: Your quarterly relief installment of Rs 10,500 is ready for biometric collection at your nearest camp site. No fee is charged.",
+      "message_hash": "1e5e03e1d54281268c29c4e2ec4f99be9669a0656580cc52de759f1f7877ddf0",
+      "sender_claimed": "8171",
+      "payment_ref": "PAY-8171-4401",
+      "status": "resolved",
+      "verdict": "matches_mock_official_notice",
+      "confidence": 0.99,
+      "rule_version": 1,
+      "assigned_officer": null,
+      "pii_redacted": false,
+      "duplicate_count": 1,
+      "created_at": "2026-11-22T12:43:36.948Z",
+      "updated_at": "2026-11-22T12:43:36.948Z"
+    },
+    {
+      "id": "CASE-5C397769",
+      "submitted_by": "usr-helper-1",
+      "submitted_by_name": "Sanaullah Khan",
+      "family_id": "FAM-101",
+      "family_name": "Muhammad Tariq",
+      "message_text": "Mubarak ho! Apka 25,000 BISP relief approve ho gaya hai. Fauran apna OTP [REDACTED-OTP] aur CNIC [REDACTED-CNIC] bhejein aur Rs 500 registration fee Easypaisa par bhej dein.",
+      "message_hash": "1142145d487b779ce6603b0d0c9dee68c03cd37d758664cdbab83216f0e62d91",
+      "sender_claimed": "0301-8842109",
+      "payment_ref": null,
+      "status": "resolved",
+      "verdict": "suspicious",
+      "confidence": 1,
+      "rule_version": 1,
+      "assigned_officer": null,
+      "pii_redacted": true,
+      "duplicate_count": 1,
+      "created_at": "2026-11-22T12:43:21.179Z",
+      "updated_at": "2026-11-22T12:43:21.179Z"
+    },
+    {
       "id": "CASE-6455F325",
       "submitted_by": "usr-helper-1",
       "submitted_by_name": "Sanaullah Khan",
@@ -238,6 +299,258 @@
     }
   ],
   "decisions": [
+    {
+      "id": "dec-b77f84f2",
+      "case_id": "CASE-BDECEA19",
+      "verdict": "suspicious",
+      "confidence": 1,
+      "user_explanation_en": "Warning: High-risk scam signs found (asks for OTP/PIN/code, suspicious external link). Do NOT send money, click links, or share OTP/CNIC/PIN.",
+      "user_explanation_ur": "خبردار: اس پیغام میں دھوکہ دہی (اسکیم) کی واضح علامات موجود ہیں۔ کوئی پیسے نہ بھیجیں اور OTP، شناختی کارڈ یا PIN ہرگز نہ بتائیں۔",
+      "safe_followup_question": null,
+      "rule_version": 1,
+      "model_version": "hybrid-rules-nlp-v1",
+      "auditor_trace": {
+        "input_hash": "3f1a912ee163354234dbf6c66de6dbc393895814a1d7dece64a80b123a4858fc",
+        "pii_redacted": false,
+        "redacted_types": [],
+        "duplicate_case_count": 0,
+        "rule_version": 1,
+        "threshold_version": 1,
+        "model_version": "hybrid-rules-nlp-v1",
+        "matched_rules": [
+          {
+            "rule_id": "rule-1",
+            "name": "OTP / PIN / Verification Code Request",
+            "rule_type": "pii_request",
+            "weight": 0.62,
+            "matched_snippet": "OTP"
+          },
+          {
+            "rule_id": "rule-4",
+            "name": "Upfront Fee / Easyload / Processing Charge",
+            "rule_type": "keyword",
+            "weight": 0.6,
+            "matched_snippet": "registration fee"
+          },
+          {
+            "rule_id": "rule-6",
+            "name": "High-Pressure Urgency / Account Block Threat",
+            "rule_type": "urgency",
+            "weight": 0.28,
+            "matched_snippet": "Fauran"
+          },
+          {
+            "rule_id": "rule-7",
+            "name": "Official Program Claimed From Unverified Sender",
+            "rule_type": "sender_mismatch",
+            "weight": 0.34,
+            "matched_snippet": "Claims \"BISP\" from non-official sender \"0301-8842109\""
+          }
+        ],
+        "rule_score": 1,
+        "ai_output": {
+          "predicted_label": "scam",
+          "confidence": 0.98,
+          "scam_signals": [
+            "asks for OTP/PIN/code",
+            "suspicious external link",
+            "urgent account block threat",
+            "OTP / PIN / Verification Code Request",
+            "Upfront Fee / Easyload / Processing Charge",
+            "High-Pressure Urgency / Account Block Threat"
+          ],
+          "plain_reason_en": "Warning: High-risk scam signs found (asks for OTP/PIN/code, suspicious external link).",
+          "plain_reason_ur": "خبردار: اس پیغام میں دھوکہ دہی (اسکیم) کی واضح علامات موجود ہیں۔",
+          "safe_followup_question": null
+        },
+        "scam_score": 1,
+        "official_score": 0.1,
+        "confidence": 1,
+        "registry_check": {
+          "checked": true,
+          "matched": false,
+          "sender_id": "0301-8842109",
+          "notice_id": null,
+          "official_program": null,
+          "disclaimer": "Prototype Mock Registry Only: Forwarded SMS sender names (like 8171) can still be spoofed. Confirm in person at an official desk and never pay fees or share OTP/PIN."
+        },
+        "payment_check": {
+          "checked": false,
+          "payment_ref": null,
+          "status": "skipped",
+          "detail": "No payment reference supplied."
+        },
+        "thresholds_applied": {
+          "scam_auto_threshold": 0.8,
+          "official_match_threshold": 0.95,
+          "ask_info_threshold": 0.6
+        },
+        "verdict": "suspicious",
+        "routing_reason": "scam_score (1) >= scam_auto_threshold (0.8)",
+        "evaluated_at": "2026-11-22T12:47:40.083Z"
+      },
+      "decided_by": "ai",
+      "decided_by_user_id": null,
+      "officer_notes": null,
+      "created_at": "2026-11-22T12:47:40.083Z"
+    },
+    {
+      "id": "dec-80a02832",
+      "case_id": "CASE-13AF3CAE",
+      "verdict": "matches_mock_official_notice",
+      "confidence": 0.99,
+      "user_explanation_en": "Text structure aligns with mock official notice from 8171 and has no fee, link, or OTP requests. Matches mock notice MOCK-NTC-8171-Q4 (Mock Relief Stipend Cycle Q4). Caveat: Forwarded sender names can still be spoofed—verify at an official desk and never pay a fee.",
+      "user_explanation_ur": "پیغام کا انداز 8171 کے موک سرکاری نوٹس سے ملتا ہے اور اس میں کوئی لنک، فیس یا کوڈ نہیں مانگا گیا۔ یہ پیغام موک سرکاری نوٹس (8171) سے ملتا ہے، مگر فارورڈ پیغام میں بھیجنے والے کا نام نقلی ہو سکتا ہے۔ سرکاری دفتر سے تصدیق کریں اور کوئی فیس نہ دیں۔",
+      "safe_followup_question": null,
+      "rule_version": 1,
+      "model_version": "hybrid-rules-nlp-v1",
+      "auditor_trace": {
+        "input_hash": "1e5e03e1d54281268c29c4e2ec4f99be9669a0656580cc52de759f1f7877ddf0",
+        "pii_redacted": false,
+        "redacted_types": [],
+        "duplicate_case_count": 1,
+        "rule_version": 1,
+        "threshold_version": 1,
+        "model_version": "hybrid-rules-nlp-v1",
+        "matched_rules": [],
+        "rule_score": 0,
+        "ai_output": {
+          "predicted_label": "official_like",
+          "confidence": 0.97,
+          "scam_signals": [],
+          "plain_reason_en": "Text structure aligns with mock official notice from 8171 and has no fee, link, or OTP requests.",
+          "plain_reason_ur": "پیغام کا انداز 8171 کے موک سرکاری نوٹس سے ملتا ہے اور اس میں کوئی لنک، فیس یا کوڈ نہیں مانگا گیا۔",
+          "safe_followup_question": null
+        },
+        "scam_score": 0.004,
+        "official_score": 0.99,
+        "confidence": 0.99,
+        "registry_check": {
+          "checked": true,
+          "matched": true,
+          "sender_id": "8171",
+          "notice_id": "MOCK-NTC-8171-Q4",
+          "official_program": "Mock Relief Stipend Cycle Q4",
+          "disclaimer": "Prototype Mock Registry Only: Forwarded SMS sender names (like 8171) can still be spoofed. Confirm in person at an official desk and never pay fees or share OTP/PIN."
+        },
+        "payment_check": {
+          "checked": true,
+          "payment_ref": "PAY-8171-4401",
+          "status": "valid_pending",
+          "detail": "Mock Relief Stipend Cycle Q4: Pending biometric collection at authorized mock camp site (zero fee)."
+        },
+        "thresholds_applied": {
+          "scam_auto_threshold": 0.8,
+          "official_match_threshold": 0.95,
+          "ask_info_threshold": 0.6
+        },
+        "verdict": "matches_mock_official_notice",
+        "routing_reason": "official_score (0.99) >= official_match_threshold (0.95) AND mock registry verified (MOCK-NTC-8171-Q4) with zero red flags",
+        "evaluated_at": "2026-11-22T12:43:36.948Z"
+      },
+      "decided_by": "ai",
+      "decided_by_user_id": null,
+      "officer_notes": null,
+      "created_at": "2026-11-22T12:43:36.948Z"
+    },
+    {
+      "id": "dec-b24a0192",
+      "case_id": "CASE-5C397769",
+      "verdict": "suspicious",
+      "confidence": 1,
+      "user_explanation_en": "Warning: High-risk scam signs found (asks for OTP/PIN/code, suspicious external link). Do NOT send money, click links, or share OTP/CNIC/PIN.",
+      "user_explanation_ur": "خبردار: اس پیغام میں دھوکہ دہی (اسکیم) کی واضح علامات موجود ہیں۔ کوئی پیسے نہ بھیجیں اور OTP، شناختی کارڈ یا PIN ہرگز نہ بتائیں۔",
+      "safe_followup_question": null,
+      "rule_version": 1,
+      "model_version": "hybrid-rules-nlp-v1",
+      "auditor_trace": {
+        "input_hash": "1142145d487b779ce6603b0d0c9dee68c03cd37d758664cdbab83216f0e62d91",
+        "pii_redacted": true,
+        "redacted_types": [
+          "cnic",
+          "otp_or_pin"
+        ],
+        "duplicate_case_count": 1,
+        "rule_version": 1,
+        "threshold_version": 1,
+        "model_version": "hybrid-rules-nlp-v1",
+        "matched_rules": [
+          {
+            "rule_id": "rule-1",
+            "name": "OTP / PIN / Verification Code Request",
+            "rule_type": "pii_request",
+            "weight": 0.62,
+            "matched_snippet": "OTP"
+          },
+          {
+            "rule_id": "rule-4",
+            "name": "Upfront Fee / Easyload / Processing Charge",
+            "rule_type": "keyword",
+            "weight": 0.6,
+            "matched_snippet": "registration fee"
+          },
+          {
+            "rule_id": "rule-6",
+            "name": "High-Pressure Urgency / Account Block Threat",
+            "rule_type": "urgency",
+            "weight": 0.28,
+            "matched_snippet": "Fauran"
+          },
+          {
+            "rule_id": "rule-7",
+            "name": "Official Program Claimed From Unverified Sender",
+            "rule_type": "sender_mismatch",
+            "weight": 0.34,
+            "matched_snippet": "Claims \"BISP\" from non-official sender \"0301-8842109\""
+          }
+        ],
+        "rule_score": 1,
+        "ai_output": {
+          "predicted_label": "scam",
+          "confidence": 0.98,
+          "scam_signals": [
+            "asks for OTP/PIN/code",
+            "suspicious external link",
+            "urgent account block threat",
+            "OTP / PIN / Verification Code Request",
+            "Upfront Fee / Easyload / Processing Charge",
+            "High-Pressure Urgency / Account Block Threat"
+          ],
+          "plain_reason_en": "Warning: High-risk scam signs found (asks for OTP/PIN/code, suspicious external link).",
+          "plain_reason_ur": "خبردار: اس پیغام میں دھوکہ دہی (اسکیم) کی واضح علامات موجود ہیں۔",
+          "safe_followup_question": null
+        },
+        "scam_score": 1,
+        "official_score": 0.1,
+        "confidence": 1,
+        "registry_check": {
+          "checked": true,
+          "matched": false,
+          "sender_id": "0301-8842109",
+          "notice_id": null,
+          "official_program": null,
+          "disclaimer": "Prototype Mock Registry Only: Forwarded SMS sender names (like 8171) can still be spoofed. Confirm in person at an official desk and never pay fees or share OTP/PIN."
+        },
+        "payment_check": {
+          "checked": false,
+          "payment_ref": null,
+          "status": "skipped",
+          "detail": "No payment reference supplied."
+        },
+        "thresholds_applied": {
+          "scam_auto_threshold": 0.8,
+          "official_match_threshold": 0.95,
+          "ask_info_threshold": 0.6
+        },
+        "verdict": "suspicious",
+        "routing_reason": "scam_score (1) >= scam_auto_threshold (0.8)",
+        "evaluated_at": "2026-11-22T12:43:21.179Z"
+      },
+      "decided_by": "ai",
+      "decided_by_user_id": null,
+      "officer_notes": null,
+      "created_at": "2026-11-22T12:43:21.179Z"
+    },
     {
       "id": "dec-b9b587ce",
       "case_id": "CASE-6455F325",
@@ -1011,6 +1324,419 @@
     }
   ],
   "audit_log": [
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "case_closed",
+      "access_kind": "write",
+      "entity_type": "case",
+      "entity_id": "CASE-BDECEA19",
+      "payload": {
+        "closed_by_role": "helper"
+      },
+      "id": "aud-ce935e69",
+      "created_at": "2026-11-22T12:47:40.256Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "ai",
+      "action": "ai_case_evaluated",
+      "access_kind": "decision",
+      "entity_type": "case",
+      "entity_id": "CASE-BDECEA19",
+      "payload": {
+        "verdict": "suspicious",
+        "confidence": 1,
+        "rule_version": 1,
+        "threshold_version": 1,
+        "model_version": "hybrid-rules-nlp-v1",
+        "registry_matched": false,
+        "family_id": "FAM-101"
+      },
+      "id": "aud-27407df5",
+      "created_at": "2026-11-22T12:47:40.092Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "families_list_viewed",
+      "access_kind": "read",
+      "entity_type": "family",
+      "entity_id": "collection",
+      "payload": {
+        "count": 6
+      },
+      "id": "aud-9f6b1661",
+      "created_at": "2026-11-22T12:47:37.557Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 7
+      },
+      "id": "aud-469eb5f5",
+      "created_at": "2026-11-22T12:47:37.551Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-helper-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-9e33c1ed",
+      "created_at": "2026-11-22T12:47:37.407Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-citizen-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-f96e7e0e",
+      "created_at": "2026-11-22T12:45:12.764Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 1
+      },
+      "id": "aud-9e588c77",
+      "created_at": "2026-11-22T12:45:12.423Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-citizen-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-dcc4292f",
+      "created_at": "2026-11-22T12:45:11.886Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 7
+      },
+      "id": "aud-7b302385",
+      "created_at": "2026-11-22T12:44:43.987Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "families_list_viewed",
+      "access_kind": "read",
+      "entity_type": "family",
+      "entity_id": "collection",
+      "payload": {
+        "count": 6
+      },
+      "id": "aud-1bd57c92",
+      "created_at": "2026-11-22T12:44:43.981Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-helper-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-2e5747d6",
+      "created_at": "2026-11-22T12:44:43.505Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 1
+      },
+      "id": "aud-f0279e40",
+      "created_at": "2026-11-22T12:44:40.732Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 1
+      },
+      "id": "aud-adec9941",
+      "created_at": "2026-11-22T12:44:40.246Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 1
+      },
+      "id": "aud-0837766e",
+      "created_at": "2026-11-22T12:44:39.774Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "consent_records_viewed",
+      "access_kind": "read",
+      "entity_type": "consent",
+      "entity_id": "collection",
+      "payload": {
+        "count": 2
+      },
+      "id": "aud-ef72ba3f",
+      "created_at": "2026-11-22T12:44:39.768Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-citizen-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-53132f4e",
+      "created_at": "2026-11-22T12:43:56.966Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 1
+      },
+      "id": "aud-53142409",
+      "created_at": "2026-11-22T12:43:56.489Z"
+    },
+    {
+      "actor_id": "usr-citizen-1",
+      "actor_name": "Muhammad Tariq",
+      "actor_role": "citizen",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-citizen-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-c0e1fe76",
+      "created_at": "2026-11-22T12:43:56.019Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "ai",
+      "action": "ai_case_evaluated",
+      "access_kind": "decision",
+      "entity_type": "case",
+      "entity_id": "CASE-13AF3CAE",
+      "payload": {
+        "verdict": "matches_mock_official_notice",
+        "confidence": 0.99,
+        "rule_version": 1,
+        "threshold_version": 1,
+        "model_version": "hybrid-rules-nlp-v1",
+        "registry_matched": true,
+        "family_id": "FAM-101"
+      },
+      "id": "aud-d0329d91",
+      "created_at": "2026-11-22T12:43:36.954Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "system",
+      "action": "mock_payment_lookup",
+      "access_kind": "read",
+      "entity_type": "mock_payment",
+      "entity_id": "PAY-8171-4401",
+      "payload": {
+        "status": "valid_pending",
+        "subject_id": "FAM-101"
+      },
+      "id": "aud-2fa00771",
+      "created_at": "2026-11-22T12:43:36.949Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "ai",
+      "action": "ai_case_evaluated",
+      "access_kind": "decision",
+      "entity_type": "case",
+      "entity_id": "CASE-5C397769",
+      "payload": {
+        "verdict": "suspicious",
+        "confidence": 1,
+        "rule_version": 1,
+        "threshold_version": 1,
+        "model_version": "hybrid-rules-nlp-v1",
+        "registry_matched": false,
+        "family_id": "FAM-101"
+      },
+      "id": "aud-91b98ac5",
+      "created_at": "2026-11-22T12:43:21.189Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "system",
+      "action": "pii_redacted",
+      "access_kind": "security",
+      "entity_type": "case_input",
+      "entity_id": "1142145d487b",
+      "payload": {
+        "redacted_types": [
+          "cnic",
+          "otp_or_pin"
+        ],
+        "note": "Accidental CNIC/OTP/IBAN redacted prior to storage"
+      },
+      "id": "aud-fa560c87",
+      "created_at": "2026-11-22T12:43:21.182Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "families_list_viewed",
+      "access_kind": "read",
+      "entity_type": "family",
+      "entity_id": "collection",
+      "payload": {
+        "count": 6
+      },
+      "id": "aud-1e80db80",
+      "created_at": "2026-11-22T12:43:12.767Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "cases_list_viewed",
+      "access_kind": "read",
+      "entity_type": "case",
+      "entity_id": "collection",
+      "payload": {
+        "returned_count": 5
+      },
+      "id": "aud-4c260a94",
+      "created_at": "2026-11-22T12:43:12.765Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-helper-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-35abc205",
+      "created_at": "2026-11-22T12:43:11.799Z"
+    },
+    {
+      "actor_id": "usr-helper-1",
+      "actor_name": "Sanaullah Khan",
+      "actor_role": "helper",
+      "actor_type": "user",
+      "action": "user_login",
+      "access_kind": "security",
+      "entity_type": "user",
+      "entity_id": "usr-helper-1",
+      "payload": {
+        "method": "demo_role_switch"
+      },
+      "id": "aud-1f84c721",
+      "created_at": "2026-11-22T12:43:10.879Z"
+    },
     {
       "actor_id": "usr-auditor-1",
       "actor_name": "Dr. Naila Rasheed",

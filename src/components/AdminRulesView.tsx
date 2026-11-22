@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Lock, Plus, Save, Sliders, Terminal } from 'lucide-react';
+import { ExternalLink, Lock, Plus, Save, Sliders, Terminal } from 'lucide-react';
 import type {
   EvalStatsResponse,
   RuleRecord,
@@ -590,13 +590,34 @@ export function AdminRulesView({ user, demoApiKey }: AdminRulesViewProps) {
           aria-label="Public Partner API Tester"
           className="rounded-xl border border-[#E2E8F0] bg-white p-6 xl:col-span-4"
         >
-          <div className="flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-[#0F4C5C]" aria-hidden="true" />
-            <h3 className="text-base font-bold text-[#0F172A]">Public API: POST /v1/check</h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-4 w-4 text-[#0F4C5C]" aria-hidden="true" />
+              <h3 className="text-base font-bold text-[#0F172A]">Public API: POST /v1/check</h3>
+            </div>
           </div>
           <p className="mt-1 text-xs text-[#475569]">
             Authenticated via <code>X-API-Key</code> with server-side rate limiting (20 req/min).
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <a
+              href="/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#0F4C5C] bg-[#F0F9FA] px-3 py-1.5 text-xs font-semibold text-[#0F4C5C] hover:bg-[#E0F2F4] whitespace-nowrap"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              Open Interactive API Docs (/docs)
+            </a>
+            <a
+              href="/openapi.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#CBD5E1] bg-white px-3 py-1.5 font-mono text-[11px] font-medium text-[#334155] hover:bg-[#F8FAFC] whitespace-nowrap"
+            >
+              /openapi.json
+            </a>
+          </div>
 
           <div className="mt-4 space-y-3">
             <div>

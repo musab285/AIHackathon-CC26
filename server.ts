@@ -36,6 +36,7 @@ import {
 import { computePhoneticKey, findCandidateMatches } from './server/services/nameMatcher';
 import { checkSensitiveProofRequest, redactPii } from './server/services/piiGuard';
 import { evaluateSyntheticDataset, runVerificationPipeline } from './server/services/pipeline';
+import { OPENAPI_SPEC, renderDocsHtml } from './server/openapi';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,6 +88,16 @@ async function createServer() {
         process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY'
       ),
     });
+  });
+
+  // OpenAPI 3.0 Spec & Interactive API Docs
+  app.get('/openapi.json', (_req, res) => {
+    res.json(OPENAPI_SPEC);
+  });
+
+  app.get('/docs', (_req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(renderDocsHtml());
   });
 
   // =========================================================
@@ -167,8 +178,30 @@ async function createServer() {
     async (req: AuthedRequest, res) => {
       try {
         const actor = req.user!;
-        const { message_text, sender_claimed = '', payment_ref = null, family_id = null, use_gemini = false } =
-          req.body ?? {};
+        const {
+          message_text,
+          sender_claimed = '',
+          payment_ref = null,
+          family_id = null,
+          use_gemini = false,
+          client_request_id = null,
+        } = req.body ?? {};
+
+        const cleanClientReqId =
+          typeof client_request_id === 'string' && client_request_id.trim().length >= 4
+            ? client_request_id.trim().slice(0, 128)
+            : null;
+
+        // Idempotent replay for offline-first sync retries
+        if (cleanClientReqId) {
+          const existing = store.state.cases.find(
+            (c) => c.client_request_id === cleanClientReqId && c.submitted_by === actor.id
+          );
+          if (existing) {
+            res.status(200).json({ case: attachDecisions(existing), idempotent_replay: true });
+            return;
+          }
+        }
 
         if (typeof message_text !== 'string' || message_text.trim().length < 6) {
           res.status(400).json({
@@ -204,9 +237,10 @@ async function createServer() {
           familyId: resolvedFamilyId,
           useGemini: Boolean(use_gemini),
           persistCase: true,
+          clientRequestId: cleanClientReqId,
         });
 
-        res.status(201).json({ case: result.caseRecord });
+        res.status(201).json({ case: result.caseRecord, idempotent_replay: false });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to evaluate message.';
         res.status(502).json({ error: message });

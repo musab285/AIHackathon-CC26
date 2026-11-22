@@ -140,6 +140,7 @@ export interface CaseRecord {
   assigned_officer: string | null;
   pii_redacted: boolean;
   duplicate_count: number;
+  client_request_id?: string | null;
   created_at: string;
   updated_at: string;
 }

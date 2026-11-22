@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile synchronized to Firestore for cloud persistence",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "enum": ["citizen", "helper", "officer", "admin", "auditor"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "CloudCaseSnapshot": {
+      "title": "CloudCaseSnapshot",
+      "description": "PII-redacted verification case snapshot mirrored to Firestore per authenticated user",
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "suspicious",
+            "matches_mock_official_notice",
+            "needs_non_sensitive_info",
+            "unverified_officer_review"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "needs_info", "in_review", "resolved", "closed"]
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "ruleVersion": {
+          "type": "integer"
+        },
+        "senderClaimed": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "redactedMessage": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 2500
+        },
+        "piiRedacted": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "caseId",
+        "ownerUid",
+        "verdict",
+        "status",
+        "confidence",
+        "ruleVersion",
+        "senderClaimed",
+        "redactedMessage",
+        "piiRedacted",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CloudConsentSnapshot": {
+      "title": "CloudConsentSnapshot",
+      "description": "User consent state record synced to Firestore",
+      "type": "object",
+      "properties": {
+        "consentId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "subjectId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["case_review", "mock_identity", "mock_payment"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "withdrawn"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["consentId", "ownerUid", "subjectId", "scope", "status", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profile document isolated strictly to its owner or verified admin"
+    },
+    "/cloud_cases/{caseId}": {
+      "schema": { "$ref": "#/entities/CloudCaseSnapshot" },
+      "description": "PII-redacted relief verification cases owned by authenticated users"
+    },
+    "/cloud_consents/{consentId}": {
+      "schema": { "$ref": "#/entities/CloudConsentSnapshot" },
+      "description": "User consent scope records enforceable per owner"
+    }
+  }
+}

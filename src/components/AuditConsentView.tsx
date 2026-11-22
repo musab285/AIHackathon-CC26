@@ -15,6 +15,7 @@ import type {
   UserPublic,
 } from '../shared/types';
 import { api } from '../utils/api';
+import { syncConsentSnapshotToFirestore } from '../lib/firebase';
 
 interface AuditConsentViewProps {
   user: UserPublic;
@@ -96,7 +97,8 @@ export function AuditConsentView({ user }: AuditConsentViewProps) {
     setError(null);
     setNotice(null);
     try {
-      await api.withdrawConsent(consent.id);
+      const res = await api.withdrawConsent(consent.id);
+      void syncConsentSnapshotToFirestore(res.consent).catch(() => undefined);
       setNotice(
         `Consent withdrawn for ${consent.subject_label} (${consent.scope}). Server-side access is now blocked.`
       );
@@ -114,7 +116,8 @@ export function AuditConsentView({ user }: AuditConsentViewProps) {
     setError(null);
     setNotice(null);
     try {
-      await api.reinstateConsent(consent.id);
+      const res = await api.reinstateConsent(consent.id);
+      void syncConsentSnapshotToFirestore(res.consent).catch(() => undefined);
       setNotice(`Consent reinstated for ${consent.subject_label} (${consent.scope}).`);
       await loadConsentData();
       await loadAuditData();

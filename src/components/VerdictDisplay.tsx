@@ -8,6 +8,7 @@ import {
   VolumeX,
   UserCheck,
   Send,
+  Archive,
 } from 'lucide-react';
 import type { CaseWithDecisions, Verdict } from '../shared/types';
 import { isReadAloudSupported, speakExplanation, stopSpeaking } from '../utils/speech';
@@ -16,6 +17,7 @@ interface VerdictDisplayProps {
   caseData: CaseWithDecisions;
   onEscalate?: (caseId: string) => Promise<void>;
   onAnswerFollowup?: (caseId: string, answer: string) => Promise<void>;
+  onCloseCase?: (caseId: string) => Promise<void>;
   canEscalate?: boolean;
 }
 
@@ -63,6 +65,7 @@ export function VerdictDisplay({
   caseData,
   onEscalate,
   onAnswerFollowup,
+  onCloseCase,
   canEscalate = true,
 }: VerdictDisplayProps) {
   const [speakingLang, setSpeakingLang] = useState<'en' | 'ur' | null>(null);
@@ -112,6 +115,16 @@ export function VerdictDisplay({
     }
   };
 
+  const handleCloseClick = async () => {
+    if (!onCloseCase) return;
+    setBusyAction(true);
+    try {
+      await onCloseCase(caseData.id);
+    } finally {
+      setBusyAction(false);
+    }
+  };
+
   return (
     <section
       aria-label="Verification Result"
@@ -124,8 +137,8 @@ export function VerdictDisplay({
           </div>
           <div>
             <p className="text-xs font-medium text-[#475569] tabular-nums">
-              Case {caseData.id} · Rule v{caseData.rule_version} · Confidence{' '}
-              {Math.round(caseData.confidence * 100)}%
+              Case {caseData.id} · Status: <span className="font-mono">{caseData.status}</span> · Rule v
+              {caseData.rule_version} · Confidence {Math.round(caseData.confidence * 100)}%
               {caseData.family_name ? ` · Family: ${caseData.family_name}` : ''}
             </p>
             <h3 className={`mt-1 text-xl font-bold tracking-tight ${meta.headingClass}`}>
@@ -254,23 +267,38 @@ export function VerdictDisplay({
           </form>
         )}
 
-      {canEscalate &&
-        onEscalate &&
-        caseData.status !== 'in_review' &&
-        caseData.status !== 'closed' && (
+      {caseData.status !== 'closed' &&
+        ((canEscalate && onEscalate && caseData.status !== 'in_review') || Boolean(onCloseCase)) && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
             <p className="text-xs text-[#475569]">
-              Still unsure or worried this sender was spoofed? Send directly to a human officer.
+              {caseData.status === 'in_review'
+                ? 'This case is assigned to a Department Officer. Close it once verification is complete.'
+                : 'Still unsure or worried this sender was spoofed? Escalate to an officer or close this case.'}
             </p>
-            <button
-              type="button"
-              disabled={busyAction}
-              onClick={handleEscalateClick}
-              className="inline-flex items-center gap-2 rounded-lg border border-[#0F4C5C] bg-white px-4 py-2 text-xs font-semibold text-[#0F4C5C] hover:bg-[#F0F9FA] disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <UserCheck className="h-4 w-4" aria-hidden="true" />
-              Escalate to Department Officer
-            </button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {canEscalate && onEscalate && caseData.status !== 'in_review' && (
+                <button
+                  type="button"
+                  disabled={busyAction}
+                  onClick={handleEscalateClick}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#0F4C5C] bg-white px-4 py-2 text-xs font-semibold text-[#0F4C5C] hover:bg-[#F0F9FA] disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <UserCheck className="h-4 w-4" aria-hidden="true" />
+                  Escalate to Department Officer
+                </button>
+              )}
+              {onCloseCase && (
+                <button
+                  type="button"
+                  disabled={busyAction}
+                  onClick={handleCloseClick}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#CBD5E1] bg-white px-4 py-2 text-xs font-semibold text-[#334155] hover:bg-[#F8FAFC] disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <Archive className="h-4 w-4" aria-hidden="true" />
+                  Close Case
+                </button>
+              )}
+            </div>
           </div>
         )}
     </section>

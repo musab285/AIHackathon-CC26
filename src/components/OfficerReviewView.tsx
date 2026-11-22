@@ -6,9 +6,11 @@ import {
   Lock,
   ShieldAlert,
   Send,
+  Archive,
 } from 'lucide-react';
 import type { CaseWithDecisions, UserPublic, Verdict } from '../shared/types';
 import { api } from '../utils/api';
+import { syncCaseSnapshotToFirestore } from '../lib/firebase';
 
 interface OfficerReviewViewProps {
   user: UserPublic;
@@ -77,12 +79,30 @@ export function OfficerReviewView({ user }: OfficerReviewViewProps) {
     setError(null);
     setFeedback(null);
     try {
-      await api.officerDecide(selected.id, verdict, officerNotes);
+      const res = await api.officerDecide(selected.id, verdict, officerNotes);
+      void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
       setOfficerNotes('');
       setFeedback(`Decision "${verdict}" recorded for ${selected.id} and appended to audit log.`);
       await loadQueue(filter);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Decision failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCloseCase = async () => {
+    if (!selected || selected.status === 'closed') return;
+    setBusy(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const res = await api.closeCase(selected.id);
+      void syncCaseSnapshotToFirestore(res.case).catch(() => undefined);
+      setFeedback(`Case ${selected.id} closed and logged in append-only audit trail.`);
+      await loadQueue(filter);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not close case.');
     } finally {
       setBusy(false);
     }
@@ -340,6 +360,15 @@ export function OfficerReviewView({ user }: OfficerReviewViewProps) {
                       >
                         <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                         Keep Unverified
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || selected.status === 'closed'}
+                        onClick={handleCloseCase}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#94A3B8] bg-[#F8FAFC] px-4 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F1F5F9] disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                      >
+                        <Archive className="h-4 w-4" aria-hidden="true" />
+                        {selected.status === 'closed' ? 'Case Closed' : 'Close Case'}
                       </button>
                     </div>
                   </div>
