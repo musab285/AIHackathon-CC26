@@ -1,0 +1,10 @@
+{
+  "name": "Relief Message Checker",
+  "description": "Multi-user civic verification platform helping shopkeepers, citizens, and community helpers verify relief payment messages with asymmetric safety routing, officer review, versioned rules, consent controls, and full audit traces.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
