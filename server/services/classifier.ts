@@ -194,7 +194,7 @@ export async function classifyMessage(input: ClassifierInput): Promise<Classifie
   });
 
   const response = await ai.models.generateContent({
-    model: 'gemini-4-hydrogen',
+    model: 'gemini-3.8-flash',
     contents: prompt,
     config: {
       systemInstruction,
@@ -244,6 +244,6 @@ export async function classifyMessage(input: ClassifierInput): Promise<Classifie
   const parsed = JSON.parse(rawText);
   return {
     output: validateAIDecisionOutput(parsed),
-    modelVersion: 'gemini-4-hydrogen',
+    modelVersion: 'gemini-3.8-flash',
   };
 }
